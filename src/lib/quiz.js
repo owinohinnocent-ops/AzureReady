@@ -1,176 +1,125 @@
+// AzureReady — quiz building, shuffling and scoring.
 
 import { TOPICS, getTopicName } from '@/data/topics';
-import {
-  QUESTIONS,
-  getQuestionsByTopic,
-} from '@/data/questions';
+import { getQuestionById, getQuestionsByTopic } from '@/data/questions';
 
 export function shuffleArray(items) {
-  const result = [...items];
-
-  for (let i = result.length - 1; i > 0; i -= 1) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
+    [copy[i], copy[j]] = [copy[j], copy[i]];
   }
-
-  return result;
+  return copy;
 }
 
 export function availableQuestionCount(topicId) {
   return getQuestionsByTopic(topicId).length;
 }
 
-export function createQuiz({
-  topicId,
-  questionCount = 10,
-  shuffleQuestions = true,
-  shuffleOptions = true,
-} = {}) {
-  const topicQuestions = getQuestionsByTopic(topicId);
+// Creates a quiz with shuffled question order and shuffled options.
+// The correct answer travels with the option key, so shuffling can never change the answer.
+export function createQuiz({ topicId, count }) {
+  const pool = getQuestionsByTopic(topicId);
+  const requested = Math.max(1, Math.min(Number(count) || pool.length, pool.length));
 
-  const selectedQuestions = shuffleQuestions
-    ? shuffleArray(topicQuestions)
-    : [...topicQuestions];
-
-  const limitedQuestions = selectedQuestions.slice(
-    0,
-    Math.min(questionCount, selectedQuestions.length)
-  );
-
-  return limitedQuestions.map((question) => {
-    const options = shuffleOptions
-      ? shuffleArray(question.options)
-      : [...question.options];
-
-    return {
-      ...question,
-      options,
-    };
-  });
-}
-
-export function isAnswered(answer) {
-  if (Array.isArray(answer)) {
-    return answer.length > 0;
-  }
-
-  return answer !== undefined && answer !== null && answer !== '';
-}
-
-export function isQuizComplete(questions, answers) {
-  return questions.every((question) =>
-    isAnswered(answers[question.id])
-  );
-}
-
-export function optionText(question, optionKey) {
-  const option = question.options.find(
-    (item) => item.key === optionKey || item.value === optionKey
-  );
-
-  return option?.text ?? option?.label ?? '';
-}
-
-export function gradeQuiz(questions, answers) {
-  let correct = 0;
-
-  const results = questions.map((question) => {
-    const selected = answers[question.id];
-    const correctKey = question.correctKey;
-
-    const isCorrect = Array.isArray(selected)
-      ? [...selected].sort().join(',') ===
-        [...(Array.isArray(correctKey) ? correctKey : [correctKey])]
-          .sort()
-          .join(',')
-      : selected === correctKey;
-
-    if (isCorrect) correct += 1;
-
-    return {
+  const items = shuffleArray(pool)
+    .slice(0, requested)
+    .map((question) => ({
       questionId: question.id,
-      topic: question.topic,
-      selectedAnswer: selected ?? null,
-      correctAnswer: correctKey,
-      isCorrect,
-      explanation: question.explanation ?? '',
-      optionFeedback: question.optionFeedback ?? {},
+      optionKeys: shuffleArray(question.options.map((option) => option.key)),
+      selectedKey: null,
+      submitted: false,
+    }));
+
+  return {
+    topicId,
+    count: items.length,
+    items,
+    index: 0,
+    startedAt: new Date().toISOString(),
+  };
+}
+
+export function isAnswered(quiz) {
+  return quiz.items.filter((item) => item.submitted).length;
+}
+
+export function isQuizComplete(quiz) {
+  return quiz.items.length > 0 && quiz.items.every((item) => item.submitted);
+}
+
+export function optionText(question, key) {
+  if (!question || !key) return 'No answer selected';
+  const option = question.options.find((item) => item.key === key);
+  return option ? option.text : 'No answer selected';
+}
+
+export function gradeQuiz(quiz) {
+  const results = quiz.items.map((item) => {
+    const question = getQuestionById(item.questionId);
+    return {
+      questionId: item.questionId,
+      topicId: question ? question.topic : null,
+      selectedKey: item.selectedKey,
+      isCorrect: !!question && item.selectedKey === question.correctKey,
     };
   });
 
-  const total = questions.length;
+  const total = results.length;
+  const correct = results.filter((result) => result.isCorrect).length;
+  const incorrect = total - correct;
+  const percentage = total ? Math.round((correct / total) * 100) : 0;
 
-  return {
-    correct,
-    total,
-    incorrect: total - correct,
-    percentage: total > 0 ? Math.round((correct / total) * 100) : 0,
-    results,
-  };
-}
+  const breakdown = TOPICS.map((topic) => {
+    const forTopic = results.filter((result) => result.topicId === topic.id);
+    const topicCorrect = forTopic.filter((result) => result.isCorrect).length;
+    return {
+      topicId: topic.id,
+      topicName: topic.shortName,
+      total: forTopic.length,
+      correct: topicCorrect,
+      percentage: forTopic.length ? Math.round((topicCorrect / forTopic.length) * 100) : 0,
+    };
+  }).filter((entry) => entry.total > 0);
 
-export function buildAttempt({
-  topicId,
-  questions,
-  answers,
-  startedAt,
-  completedAt = new Date().toISOString(),
-}) {
-  const grade = gradeQuiz(questions, answers);
-
-  return {
-    id: `attempt-${Date.now()}`,
-    topicId,
-    topicName: getTopicName(topicId),
-    startedAt,
-    completedAt,
-    questionCount: questions.length,
-    score: grade.correct,
-    total: grade.total,
-    percentage: grade.percentage,
-    results: grade.results,
-  };
-}
-
-export function weakestTopic(attempts) {
-  const topicScores = {};
-
-  attempts.forEach((attempt) => {
-    (attempt.results ?? []).forEach((result) => {
-      if (!topicScores[result.topic]) {
-        topicScores[result.topic] = {
-          correct: 0,
-          total: 0,
-        };
-      }
-
-      topicScores[result.topic].total += 1;
-
-      if (result.isCorrect) {
-        topicScores[result.topic].correct += 1;
-      }
+  const missed = results
+    .filter((result) => !result.isCorrect)
+    .map((result) => {
+      const question = getQuestionById(result.questionId);
+      return {
+        questionId: result.questionId,
+        topicId: result.topicId,
+        question: question ? question.question : 'Question unavailable',
+        selectedText: optionText(question, result.selectedKey),
+        correctText: optionText(question, question ? question.correctKey : null),
+        explanation: question ? question.explanation : '',
+      };
     });
-  });
 
-  const entries = Object.entries(topicScores);
+  return { total, correct, incorrect, percentage, results, breakdown, missed };
+}
 
-  if (entries.length === 0) return null;
-
-  entries.sort((a, b) => {
-    const scoreA = a[1].correct / a[1].total;
-    const scoreB = b[1].correct / b[1].total;
-    return scoreA - scoreB;
-  });
-
-  const [topicId, scores] = entries[0];
-
+export function buildAttempt(quiz) {
+  const graded = gradeQuiz(quiz);
   return {
-    topicId,
-    topicName: getTopicName(topicId),
-    correct: scores.correct,
-    total: scores.total,
-    percentage: Math.round(
-      (scores.correct / scores.total) * 100
-    ),
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    createdAt: new Date().toISOString(),
+    topicId: quiz.topicId,
+    topicName: getTopicName(quiz.topicId),
+    total: graded.total,
+    correct: graded.correct,
+    incorrect: graded.incorrect,
+    percentage: graded.percentage,
+    breakdown: graded.breakdown,
+    missed: graded.missed,
+    answers: graded.results.map((result) => ({ questionId: result.questionId, isCorrect: result.isCorrect })),
   };
+}
+
+// The topic that deserves the most revision in a finished attempt.
+export function weakestTopic(attempt) {
+  if (!attempt || !Array.isArray(attempt.breakdown) || attempt.breakdown.length === 0) return null;
+  const sorted = [...attempt.breakdown].sort((a, b) => a.percentage - b.percentage);
+  const lowest = sorted[0];
+  return lowest.percentage < 100 ? lowest : null;
 }

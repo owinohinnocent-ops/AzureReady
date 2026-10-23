@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, BookOpen, Layers, Play, RotateCcw, Shuffle, Target, Trophy } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import StatCard from '@/components/StatCard';
 import TopicCard from '@/components/TopicCard';
 import AttemptList from '@/components/AttemptList';

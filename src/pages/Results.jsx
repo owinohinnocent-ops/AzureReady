@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowRight, ChevronDown, Lightbulb, RotateCcw, Shuffle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import ProgressBar from '@/components/ProgressBar';
 import ScoreRing from '@/components/ScoreRing';
 import StatCard from '@/components/StatCard';

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Loader2, LogOut, RotateCcw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import ProgressBar from '@/components/ProgressBar';
 import QuizOption from '@/components/QuizOption';
 import AnswerFeedback from '@/components/AnswerFeedback';

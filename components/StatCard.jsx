@@ -1,51 +1,16 @@
-
-export default function StatCard({
-  title,
-  value,
-  description,
-}) {
+export default function StatCard({ icon: Icon, label, value, hint, accent = 'text-blue-600 bg-blue-50 ring-blue-100' }) {
   return (
-    <div
-      style={{
-        padding: "20px",
-        border: "1px solid #e5e7eb",
-        borderRadius: "12px",
-        backgroundColor: "#ffffff",
-        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
-      }}
-    >
-      <p
-        style={{
-          margin: 0,
-          fontSize: "14px",
-          color: "#6b7280",
-        }}
-      >
-        {title}
-      </p>
-
-      <div
-        style={{
-          marginTop: "8px",
-          fontSize: "28px",
-          fontWeight: 700,
-          color: "#111827",
-        }}
-      >
-        {value}
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
+        {Icon ? (
+          <span className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ring-1 ${accent}`}>
+            <Icon className="h-4 w-4" />
+          </span>
+        ) : null}
       </div>
-
-      {description && (
-        <p
-          style={{
-            marginBottom: 0,
-            fontSize: "13px",
-            color: "#6b7280",
-          }}
-        >
-          {description}
-        </p>
-      )}
+      <p className="mt-4 font-heading text-3xl font-extrabold tracking-tight text-slate-900 tabular-nums">{value}</p>
+      {hint ? <p className="mt-1.5 text-sm text-slate-500">{hint}</p> : null}
     </div>
   );
 }

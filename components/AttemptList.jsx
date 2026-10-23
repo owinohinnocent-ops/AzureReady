@@ -1,34 +1,39 @@
 
+import { formatAttemptDate } from '@/lib/format';
+
 export default function AttemptList({ attempts = [] }) {
   if (!attempts.length) {
     return (
-      <p style={{ color: "#6b7280", padding: "12px 0" }}>
-        No quiz attempts yet.
+      <p className="py-3 text-sm text-slate-500">
+        No quiz attempts yet. Start a practice quiz to see your results here.
       </p>
     );
   }
 
   return (
-    <div style={{ display: "grid", gap: "12px" }}>
+    <div className="grid gap-3">
       {attempts.map((attempt, index) => (
         <div
           key={attempt.id ?? index}
-          style={{
-            padding: "16px",
-            border: "1px solid #e5e7eb",
-            borderRadius: "8px",
-          }}
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4"
         >
-          <strong>
-            {attempt.topicTitle ?? attempt.topic ?? "Quiz attempt"}
-          </strong>
+          <div>
+            <p className="font-semibold text-slate-900">
+              {attempt.topicName ?? attempt.topicTitle ?? attempt.topic ?? 'Quiz attempt'}
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              {formatAttemptDate(attempt.createdAt ?? attempt.date)}
+            </p>
+          </div>
 
-          <p style={{ marginBottom: 0, color: "#6b7280" }}>
-            Score: {attempt.score ?? 0}%
-            {attempt.date
-              ? ` · ${new Date(attempt.date).toLocaleDateString()}`
-              : ""}
-          </p>
+          <div className="text-right">
+            <p className="font-bold text-slate-900">
+              {attempt.percentage ?? attempt.score ?? 0}%
+            </p>
+            <p className="text-xs text-slate-500">
+              {attempt.correct ?? 0} of {attempt.total ?? 0} correct
+            </p>
+          </div>
         </div>
       ))}
     </div>

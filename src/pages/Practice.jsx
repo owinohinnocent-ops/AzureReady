@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Info, Play, RotateCcw, Shuffle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { MIXED_TOPIC, QUIZ_LENGTHS, TOPICS } from '@/data/topics';
 import { availableQuestionCount } from '@/lib/quiz';
 import { loadSession } from '@/lib/storage';
